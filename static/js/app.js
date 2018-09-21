@@ -10,6 +10,8 @@
 'use strict';
 
 // eslint-disable-next-line prefer-const
+let API;
+// eslint-disable-next-line prefer-const
 let AssistantScreen;
 // eslint-disable-next-line prefer-const
 let GatewayModel;
@@ -33,6 +35,8 @@ let RulesScreen;
 let RuleScreen;
 // eslint-disable-next-line prefer-const
 let Speech;
+
+const Notifications = require('./notifications');
 
 const App = {
   /**
@@ -73,11 +77,71 @@ const App = {
     this.overflowButton.addEventListener('click',
                                          this.toggleOverflowMenu.bind(this));
     this.overflowMenu = document.getElementById('overflow-menu');
+    this.blockMessages = false;
     this.messageArea = document.getElementById('message-area');
     this.messageTimeout = null;
     this.gatewayModel = new GatewayModel();
+
+    this.wsBackoff = 1000;
+    this.initWebSocket();
+
+    this.connectivityOverlay = document.getElementById('connectivity-scrim');
+    this.startPinger();
+
     Menu.init();
     Router.init();
+  },
+
+  initWebSocket() {
+    const path = `${this.ORIGIN.replace(/^http/, 'ws')}/logs?jwt=${API.jwt}`;
+    this.messageSocket = new WebSocket(path);
+
+    this.messageSocket.addEventListener('open', () => {
+      // Reset the backoff period
+      this.wsBackoff = 1000;
+    }, {once: true});
+
+    const onMessage = (msg) => {
+      const message = JSON.parse(msg.data);
+      this.showMessage(message.message, 5000);
+    };
+
+    const cleanup = () => {
+      this.messageSocket.removeEventListener('message', onMessage);
+      this.messageSocket.removeEventListener('close', cleanup);
+      this.messageSocket.removeEventListener('error', cleanup);
+      this.messageSocket.close();
+      this.messageSocket = null;
+
+      setTimeout(() => {
+        this.wsBackoff *= 2;
+        this.initWebSocket();
+      }, this.wsBackoff);
+    };
+
+    this.messageSocket.addEventListener('message', onMessage);
+    this.messageSocket.addEventListener('close', cleanup);
+    this.messageSocket.addEventListener('error', cleanup);
+  },
+
+  startPinger() {
+    this.pingerInterval = setInterval(() => {
+      fetch(`${this.ORIGIN}/ping`, {headers: {Accept: 'application/json'}})
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error('Bad return status');
+          }
+
+          this.connectivityOverlay.classList.add('hidden');
+          this.messageArea.classList.remove('disconnected');
+          this.hidePersistentMessage();
+        })
+        .catch(() => {
+          this.connectivityOverlay.classList.remove('hidden');
+          this.messageArea.classList.add('disconnected');
+          this.showPersistentMessage('Gateway Unreachable');
+        });
+    }, 30 * 1000);
   },
 
   showAssistant: function() {
@@ -184,6 +248,18 @@ const App = {
     }
   },
 
+  showPersistentMessage: function(message) {
+    this.showMessage(message);
+    this.blockMessages = true;
+  },
+
+  hidePersistentMessage: function() {
+    if (this.blockMessages) {
+      this.hideMessageArea();
+      this.blockMessages = false;
+    }
+  },
+
   showMessageArea: function() {
     this.messageArea.classList.remove('hidden');
   },
@@ -196,6 +272,10 @@ const App = {
     if (this.messageTimeout !== null) {
       clearTimeout(this.messageTimeout);
       this.messageTimeout = null;
+    }
+
+    if (this.blockMessages) {
+      return;
     }
 
     this.messageArea.innerHTML = message;
@@ -213,6 +293,7 @@ const App = {
 module.exports = App;
 
 // avoid circular dependency
+API = require('./api');
 AssistantScreen = require('./assistant');
 GatewayModel = require('./models/gateway-model');
 ThingsScreen = require('./things');
@@ -268,6 +349,7 @@ if (navigator.serviceWorker) {
   navigator.serviceWorker.register('/service-worker.js', {
     scope: '/',
   });
+  navigator.serviceWorker.ready.then(Notifications.onReady);
 }
 
 /**

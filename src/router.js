@@ -97,6 +97,8 @@ const Router = {
             require('./controllers/settings_controller'));
     app.use(API_PREFIX + Constants.USERS_PATH, nocache,
             require('./controllers/users_controller'));
+    app.use(API_PREFIX + Constants.PING_PATH, nocache,
+            require('./controllers/ping_controller'));
     if (options.debug) {
       app.use(API_PREFIX + Constants.DEBUG_PATH, nocache,
               require('./controllers/debug_controller'));
@@ -127,6 +129,8 @@ const Router = {
             require('./rules-engine/index.js'));
     app.use(API_PREFIX + Constants.LOGS_PATH, nocache, auth,
             require('./controllers/logs_controller'));
+    app.use(API_PREFIX + Constants.PUSH_PATH, nocache, auth,
+            require('./controllers/push_controller'));
 
     app.use(API_PREFIX + Constants.OAUTH_PATH, nocache,
             require('./controllers/oauth_controller').default);

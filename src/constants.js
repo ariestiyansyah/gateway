@@ -30,6 +30,8 @@ exports.RULES_PATH = '/rules';
 exports.OAUTH_PATH = '/oauth';
 exports.OAUTHCLIENTS_PATH = '/authorizations';
 exports.LOGS_PATH = '/logs';
+exports.PUSH_PATH = '/push';
+exports.PING_PATH = '/ping';
 // Remember we end up in the build/* directory so these paths looks slightly
 // different than you might expect.
 exports.STATIC_PATH = path.join(__dirname, '../static');
@@ -58,6 +60,7 @@ exports.MOCK_DEVICE_ADDED_REMOVED = 'mockDeviceAddedRemoved';
 exports.MOCK_DEVICE_ADD_REMOVE_FAILED = 'mockDeviceAddRemoveFailed';
 exports.PAIRING_TIMEOUT = 'pairingTimeout';
 exports.PAIR_MOCK_DEVICE = 'pairMockDevice';
+exports.PLUGIN_ERROR = 'pluginError';
 exports.PLUGIN_UNLOADED = 'pluginUnloaded';
 exports.PROPERTY_CHANGED = 'propertyChanged';
 exports.PROPERTY_STATUS = 'propertyStatus';
@@ -98,3 +101,11 @@ exports.AUTHORIZATION_CODE = 'authorization_code';
 exports.USER_TOKEN = 'user_token';
 exports.READWRITE = 'readwrite';
 exports.READ = 'read';
+
+// Logging
+exports.LogSeverity = {
+  DEBUG: 0,
+  INFO: 1,
+  WARNING: 2,
+  ERROR: 3,
+};
